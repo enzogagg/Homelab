@@ -1,6 +1,5 @@
 ---
-- hosts: "{{ hosts }}"
-  name: Hello World Playbook
+- name: Hello World Playbook
 
   tasks:
     - name: Print Hello World
