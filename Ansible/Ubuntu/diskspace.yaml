@@ -10,3 +10,10 @@
       register: disk_usage
       changed_when: false
       check_mode: false
+
+    - name: Write disk usage to output file
+      ansible.builtin.copy:
+        content: "{{ disk_usage.stdout }}"
+        dest: "{{ playbook_dir }}/disk_usage.txt"
+      delegate_to: localhost
+      run_once: true
