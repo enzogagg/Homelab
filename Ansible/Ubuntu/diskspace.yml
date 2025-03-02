@@ -16,3 +16,6 @@
         data:
           disk_usage: "{{ disk_usage.stdout }}"
         per_host: false
+    - name: Return disk usage value
+      ansible.builtin.debug:
+      msg: "Disk usage is {{ disk_usage.stdout }}%"

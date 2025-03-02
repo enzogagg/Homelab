@@ -1,6 +1,6 @@
 ---
 - name: Hello World Playbook
-  hosts: "{{ target_group | default('all') }}"  # Utilise un groupe spécifique de l'inventaire
+  hosts: "{{ target_group | default('all') }}"
   tasks:
     - name: Print Hello World
       debug:
