@@ -19,4 +19,4 @@
 
     - name: Return disk usage value
       ansible.builtin.debug:
-      msg: "Disk usage is {{ disk_usage.stdout }}%"
+        msg: "Disk usage is {{ disk_usage.stdout }}%"
