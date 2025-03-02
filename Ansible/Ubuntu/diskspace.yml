@@ -11,11 +11,10 @@
       changed_when: false
       check_mode: false
 
-    - name: Set disk usage as fact
-      ansible.builtin.set_stats:
-        data:
-          disk_usage: "{{ disk_usage.stdout }}"
-        per_host: false
+    - name: Save result to JSON file
+      ansible.builtin.copy:
+        content: "{{ disk_usage.stdout | to_json }}"
+        dest: "/tmp/disk_usage_result.json"
 
     - name: Return disk usage value
       ansible.builtin.debug:
