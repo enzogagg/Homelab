@@ -11,9 +11,18 @@
       changed_when: false
       check_mode: false
 
+    - name: Create directory if it doesn't exist
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
     - name: Write disk usage to output file
       ansible.builtin.copy:
         content: "{{ disk_usage.stdout }}"
         dest: "{{ playbook_dir }}/disk_usage.txt"
+        mode: '0644'
       delegate_to: localhost
       run_once: true
