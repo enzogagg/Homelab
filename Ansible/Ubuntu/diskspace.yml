@@ -1,5 +1,8 @@
 - name: Check disk space
   hosts: "{{ target_group | default('all') }}"
+  vars:
+    destination_email: "{{ email }}"
+
   tasks:
     - name: Check disk space available
       ansible.builtin.shell:
@@ -11,6 +14,9 @@
       changed_when: false
       check_mode: false
 
-    - name: Return disk usage value
-      ansible.builtin.debug:
-        msg: "Disk usage is {{ disk_usage.stdout }}%"
+    - name: Send email alert if disk usage is high
+      ansible.builtin.mail:
+        to: "{{ destination_email }}"
+        subject: "High disk usage alert on {{ inventory_hostname }}"
+        body: "Disk usage is at {{ disk_usage.stdout }}% on {{ inventory_hostname }}"
+      when: disk_usage.stdout|int > 80
