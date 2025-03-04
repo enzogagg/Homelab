@@ -1,0 +1,31 @@
+- name: Update apt
+  hosts: "{{ target_group | default('all') }}"
+  vars:
+    destination_email: "{{ destination_email }}"
+    source_email: "{{ source_email }}"
+    source_email_password: "{{ source_email_password }}"
+
+  tasks:
+    - name: Install Updates
+      ansible.builtin.apt:
+        update_cache: yes
+        upgrade: dist
+      register: apt_update
+      changed_when: false
+      check_mode: false
+
+    - name: Sending an e-mail using Gmail SMTP servers
+      mail:
+        host: smtp.mail.ovh.net
+        port: 465
+        username: "{{ source_email }}"
+        password: "{{ source_email_password }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
+        subject: "Apt update on {{ inventory_hostname }}"
+        body: |
+          Apt update has been run on {{ inventory_hostname }}
+          Updated packages:
+          {{ apt_update.stdout_lines | default(['No packages updated']) | join('\n') }}
+      delegate_to: "{{ inventory_hostname }}"
+      when: apt_update.changed
