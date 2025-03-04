@@ -1,17 +1,12 @@
 - name: Update apt
   hosts: "{{ target_group | default('all') }}"
-  become_method: sudo
-  become_user: root
+  become: yes
   vars:
     destination_email: "{{ destination_email }}"
     source_email: "{{ source_email }}"
     source_email_password: "{{ source_email_password }}"
 
   tasks:
-    - name: Remove apt lock files
-      command: rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
-      become: true
-      ignore_errors: yes
 
     - name: Wait for apt lock to be released
       wait_for:
@@ -19,13 +14,12 @@
         state: absent
         timeout: 600
 
-    - name: Install Updates
-      ansible.builtin.apt:
+    - name: upgrade apt packages
+      become: true
+      apt:
+        upgrade: yes
         update_cache: yes
-        upgrade: dist
       register: apt_update
-      changed_when: false
-      check_mode: false
 
     - name: Sending an e-mail using Gmail SMTP servers
       mail:
