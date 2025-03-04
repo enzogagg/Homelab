@@ -1,5 +1,6 @@
 - name: Update apt
   hosts: "{{ target_group | default('all') }}"
+  become: true
   vars:
     destination_email: "{{ destination_email }}"
     source_email: "{{ source_email }}"
