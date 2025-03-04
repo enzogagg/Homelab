@@ -1,3 +1,5 @@
+[all:vars]
+ansible_dns_servers=192.168.100.15
 [vm_management]
 vm-management.ega.ovh ansible_ssh_port=4786
 [vm_torrent]
