@@ -1,6 +1,7 @@
 - name: Update apt
   hosts: "{{ target_group | default('all') }}"
-  become: true
+  become_method: sudo
+  become_user: root
   vars:
     destination_email: "{{ destination_email }}"
     source_email: "{{ source_email }}"
