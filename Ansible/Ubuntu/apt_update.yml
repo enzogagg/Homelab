@@ -8,11 +8,16 @@
     source_email_password: "{{ source_email_password }}"
 
   tasks:
+    - name: Remove apt lock files
+      command: rm -f /var/lib/apt/lists/lock /var/cache/apt/archives/lock /var/lib/dpkg/lock*
+      become: true
+      ignore_errors: yes
+
     - name: Wait for apt lock to be released
       wait_for:
         path: /var/lib/apt/lists/lock
         state: absent
-        timeout: 300
+        timeout: 600
 
     - name: Install Updates
       ansible.builtin.apt:
