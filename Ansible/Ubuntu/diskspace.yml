@@ -1,9 +1,9 @@
 - name: Check disk space
   hosts: "{{ target_group | default('all') }}"
   vars:
-    - destination_email: "{{ destination_email }}"
-    - source_email: "{{ source_email }}"
-    - source_email_password: "{{ source_email_password }}"
+    destination_email: "{{ destination_email }}"
+    source_email: "{{ source_email }}"
+    source_email_password: "{{ source_email_password }}"
 
   tasks:
     - name: Check disk space available
@@ -16,16 +16,15 @@
       changed_when: false
       check_mode: false
 
-    - name: Sending an e-mail using OVH SMTP servers
-      community.general.mail:
-        host: ssl0.ovh.net
-        port: 587
+    - name: Sending an e-mail using Gmail SMTP servers
+      mail:
+        host: smtp.mail.ovh.net
+        port: 465
         username: "{{ source_email }}"
         password: "{{ source_email_password }}"
-        secure: starttls
-        from: "{{ source_email }}"
-        to: "{{ destination_email }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
         subject: "High disk usage alert on {{ inventory_hostname }}"
         body: "Disk usage is at {{ disk_usage.stdout }}% on {{ inventory_hostname }}"
-      delegate_to: localhost
-      when: disk_usage.stdout|int > 30
+      delegate_to: "{{ inventory_hostname }}"
+      when: disk_usage.stdout|int > 80
