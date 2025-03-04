@@ -8,6 +8,12 @@
     source_email_password: "{{ source_email_password }}"
 
   tasks:
+    - name: Wait for apt lock to be released
+      wait_for:
+        path: /var/lib/apt/lists/lock
+        state: absent
+        timeout: 300
+
     - name: Install Updates
       ansible.builtin.apt:
         update_cache: yes
