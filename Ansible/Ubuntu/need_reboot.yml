@@ -1,4 +1,4 @@
-- name: Update apt packages
+- name: Need reboot
   hosts: "{{ target_group | default('all') }}"
   become: true
   vars:
@@ -20,8 +20,8 @@
         secure: always
         username: "{{ source_email }}"
         password: "{{ source_email_password }}"
-        from: "{{ source_email }}"
-        to: "{{ destination_email }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
         subject: "Server reboot required on {{ inventory_hostname }}"
         body: "A reboot is required on {{ inventory_hostname }}. System will reboot now."
       when: reboot_required_file.stat.exists
@@ -43,8 +43,8 @@
         secure: always
         username: "{{ source_email }}"
         password: "{{ source_email_password }}"
-        from: "{{ source_email }}"
-        to: "{{ destination_email }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
         subject: "Server {{ inventory_hostname }} has rebooted successfully"
         body: "The server {{ inventory_hostname }} has completed its reboot process."
       when: reboot_required_file.stat.exists

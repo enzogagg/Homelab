@@ -28,8 +28,8 @@
         secure: always
         username: "{{ source_email }}"
         password: "{{ source_email_password }}"
-        from: "{{ source_email }}"
-        to: "{{ destination_email }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
         subject: "Apt update on {{ inventory_hostname }}"
         body: |
           Apt update has been run on {{ inventory_hostname }}
