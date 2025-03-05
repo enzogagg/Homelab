@@ -7,7 +7,6 @@
     source_email_password: "{{ source_email_password }}"
 
   tasks:
-
     - name: Update and upgrade apt packages
       apt:
         update_cache: yes
@@ -18,7 +17,7 @@
 
     - name: Parse updated packages
       set_fact:
-      updated_packages: "{{ apt_update.stdout_lines | select('match', '^Inst.*') | map('regex_replace', '^Inst\\s+(\\S+)\\s+\\[(.+)\\]\\s+\\((.+)\\).*$', '\\1 mis à jour de \\2 vers \\3') | join('\n') }}"
+        updated_packages: "{{ apt_update.stdout_lines | default([]) | select('match', '^Inst.*') | list }}"
       when: apt_update.changed
 
     - name: Send notification email
@@ -34,5 +33,9 @@
         body: |
           Apt update has been run on {{ inventory_hostname }}
           Updated packages:
-          {{ apt_update.stdout_lines | default(['No packages updated']) | join('\n') }}
+          {% if updated_packages | length > 0 %}
+          {{ updated_packages | join('\n') }}
+          {% else %}
+          No packages updated
+          {% endif %}
       when: apt_update.changed
