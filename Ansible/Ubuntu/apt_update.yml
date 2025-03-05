@@ -1,38 +1,42 @@
-- name: Update apt
+- name: Update apt packages
   hosts: "{{ target_group | default('all') }}"
-  become: yes
+  become: true
   vars:
     destination_email: "{{ destination_email }}"
     source_email: "{{ source_email }}"
     source_email_password: "{{ source_email_password }}"
 
   tasks:
-
     - name: Wait for apt lock to be released
       wait_for:
-        path: /var/lib/apt/lists/lock
+        path: "{{ item }}"
         state: absent
         timeout: 600
+      loop:
+        - /var/lib/apt/lists/lock
+        - /var/lib/dpkg/lock
+        - /var/lib/dpkg/lock-frontend
 
-    - name: upgrade apt packages
-      become: true
+    - name: Update and upgrade apt packages
       apt:
-        upgrade: yes
         update_cache: yes
+        upgrade: yes
+        autoremove: yes
+        autoclean: yes
       register: apt_update
 
-    - name: Sending an e-mail using Gmail SMTP servers
+    - name: Send notification email
       mail:
         host: smtp.mail.ovh.net
         port: 465
+        secure: always
         username: "{{ source_email }}"
         password: "{{ source_email_password }}"
-        from: "Kestra <{{ source_email }}>"
-        to: "Kestra <{{ destination_email }}>"
+        from: "{{ source_email }}"
+        to: "{{ destination_email }}"
         subject: "Apt update on {{ inventory_hostname }}"
         body: |
           Apt update has been run on {{ inventory_hostname }}
           Updated packages:
           {{ apt_update.stdout_lines | default(['No packages updated']) | join('\n') }}
-      delegate_to: "{{ inventory_hostname }}"
       when: apt_update.changed
