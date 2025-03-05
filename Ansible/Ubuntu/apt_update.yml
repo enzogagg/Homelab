@@ -7,15 +7,6 @@
     source_email_password: "{{ source_email_password }}"
 
   tasks:
-    #- name: Wait for apt lock to be released
-    #  wait_for:
-    #    path: "{{ item }}"
-    #    state: absent
-    #    timeout: 600
-    #  loop:
-    #    - /var/lib/apt/lists/lock
-    #    - /var/lib/dpkg/lock
-    #    - /var/lib/dpkg/lock-frontend
 
     - name: Update and upgrade apt packages
       apt:
