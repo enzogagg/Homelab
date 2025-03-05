@@ -1,10 +1,10 @@
 [vm_management]
-192.168.100.3 ansible_ssh_port=4786
+vm-management.ega.ovh ansible_ssh_host=192.168.100.3 ansible_ssh_port=4786
 [vm_torrent]
-192.168.130.2 ansible_ssh_port=4787
+vm-torrent.ega.ovh ansible_ssh_host=192.168.130.2 ansible_ssh_port=4787
 [vm_monitoring]
-192.168.100.35 ansible_ssh_port=4788
+vm-monitoring.ega.ovh ansible_ssh_host=192.168.100.35 ansible_ssh_port=4788
 [vm_media]
-192.168.40.2 ansible_ssh_port=4790
+vm-media.ega.ovh ansible_ssh_host=192.168.40.2 ansible_ssh_port=4790
 [vm_service]
-192.168.100.50 ansible_ssh_port=4791
+vm-service.ega.ovh ansible_ssh_host=192.168.100.50 ansible_ssh_port=4791
