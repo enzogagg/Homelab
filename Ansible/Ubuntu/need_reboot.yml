@@ -1,0 +1,51 @@
+- name: Need reboot
+  hosts: "{{ target_group | default('all') }}"
+  become: true
+  vars:
+    destination_email: "{{ destination_email }}"
+    source_email: "{{ source_email }}"
+    source_email_password: "{{ source_email_password }}"
+
+  tasks:
+
+    - name: Check if reboot is needed
+      register: reboot_required_file
+      stat:
+        path: /var/run/reboot-required
+
+    - name: Send notification email
+      mail:
+        host: smtp.mail.ovh.net
+        port: 465
+        secure: always
+        username: "{{ source_email }}"
+        password: "{{ source_email_password }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
+        subject: "Server reboot required on {{ inventory_hostname }}"
+        body: "A reboot is required on {{ inventory_hostname }}. System will reboot now."
+      when: reboot_required_file.stat.exists
+
+    - name: Reboot if needed
+      when: reboot_required_file.stat.exists
+      reboot:
+        msg: "Reboot initiated by Ansible"
+        connect_timeout: 5
+        reboot_timeout: 300
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
+
+    - name: Send notification email
+      mail:
+        host: smtp.mail.ovh.net
+        port: 465
+        secure: always
+        username: "{{ source_email }}"
+        password: "{{ source_email_password }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
+        subject: "Server {{ inventory_hostname }} has rebooted successfully"
+        body: "The server {{ inventory_hostname }} has completed its reboot process."
+      when: reboot_required_file.stat.exists
+
