@@ -15,10 +15,15 @@
       when: images_to_update.stdout != ""
       block:
         - name: Stopper les conteneurs
-          shell: "docker ps --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -Ff <(echo '{{ images_to_update.stdout }}') | awk '{print $2}' | xargs -r docker stop"
+          shell: |
+            echo '{{ images_to_update.stdout }}' > /tmp/images_list
+            docker ps --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -f /tmp/images_list | awk '{print $2}' | xargs -r docker stop
+            rm /tmp/images_list
+          args:
+            executable: /bin/bash
 
-        - name: Sauvegarder les volumes avec BackRest
-          shell: "backrest backup --all"
+        # - name: Sauvegarder les volumes avec BackRest
+        #   shell: "backrest backup --all"
 
     - name: Pull new images
       when: images_to_update.stdout != ""
@@ -26,7 +31,12 @@
 
     - name: Restart containers
       when: images_to_update.stdout != ""
-      shell: "docker ps -a --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -Ff <(echo '{{ images_to_update.stdout }}') | awk '{print $2}' | xargs -r docker start"
+      shell: |
+        echo '{{ images_to_update.stdout }}' > /tmp/images_list
+        docker ps -a --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -f /tmp/images_list | awk '{print $2}' | xargs -r docker start
+        rm /tmp/images_list
+      args:
+        executable: /bin/bash
 
     - name: Check if containers are running
       when: images_to_update.stdout != ""
