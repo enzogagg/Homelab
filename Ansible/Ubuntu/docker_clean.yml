@@ -1,0 +1,17 @@
+- name: Docker clean
+  hosts: "{{ target_group | default('all') }}"
+  become: true
+
+  tasks:
+
+    - name: Remove all unused images
+      shell: docker image prune -af
+      ignore_errors: true
+
+    - name: Remove all unused volumes
+      shell: docker volume prune -f
+      ignore_errors: true
+
+    - name: Remove all unused networks
+      shell: docker network prune -f
+      ignore_errors: true

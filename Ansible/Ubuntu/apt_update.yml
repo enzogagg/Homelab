@@ -33,6 +33,24 @@
           {% endif %}
       when: apt_update.changed
 
+    - name: Format email body
+      set_fact:
+      email_body: "Apt update has been run on {{ inventory_hostname }}\n\nUpdated packages:\n{{ apt_update.stdout_lines | default(['No packages updated']) | join('\n') }}"
+      when: apt_update.changed
+
+    - name: Send notification email
+      mail:
+      host: smtp.mail.ovh.net
+      port: 465
+      secure: always
+      username: "{{ source_email }}"
+      password: "{{ source_email_password }}"
+      from: "Kestra <{{ source_email }}>"
+      to: "Kestra <{{ destination_email }}>"
+      subject: "Apt update on {{ inventory_hostname }}"
+      body: "{{ email_body }}"
+      when: apt_update.changed
+
     - name: Send notification email
       mail:
         host: smtp.mail.ovh.net
