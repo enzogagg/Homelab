@@ -18,7 +18,7 @@
 
     - name: Parse updated packages
       set_fact:
-      updated_packages: "{{ apt_update.stdout_lines | select('match', '^Inst.*') | map('regex_replace', '^Inst\\s+(\\S+)\\s+\\[(.+)\\]\\s+\\((.+)\\).*$', '\\1 mis à jour de \\2 vers \\3') | list }}"
+        updated_packages: "{{ apt_update.stdout_lines | select('match', '^Inst.*') | map('regex_replace', '^Inst\\s+(\\S+)\\s+\\[(.+)\\]\\s+\\((.+)\\).*$', '\\1 mis à jour de \\2 vers \\3') | list }}"
       when: apt_update.changed
 
     - name: Format email body
