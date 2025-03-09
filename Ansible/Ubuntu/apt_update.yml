@@ -20,9 +20,9 @@
         updated_packages: "{{ apt_update.stdout_lines | select('match', '^Inst.*') | map('regex_replace', '^Inst\\s+(\\S+)\\s+\\[(.+)\\]\\s+\\((.+)\\).*$', '- \\1 (\\2 → \\3)') | list }}"
       when: apt_update.changed
 
-    - name: Format email body
+    - name: Create email content
       set_fact:
-        email_content: |
+        email_body: >-
           Mise à jour APT effectuée sur {{ inventory_hostname }}
 
           {% if updated_packages | default([]) | length > 0 %}
@@ -43,5 +43,5 @@
         from: "{{ source_email }}"
         to: "{{ destination_email }}"
         subject: "Mise à jour APT sur {{ inventory_hostname }}"
-        body: "{{ email_content }}"
+        body: "{{ email_body }}"
       when: apt_update.changed
