@@ -41,6 +41,7 @@
       register: check_running
       failed_when: "'false' in check_running.stdout"
 
-    - name: Afficher les conteneurs mis à jour
-      debug:
-        msg: "{{ docker_images_updated | to_json }}"
+    - name: Sauvegarder les images mises à jour dans un fichier JSON
+      copy:
+        content: "{{ docker_update_output.stdout_lines | to_json }}"
+        dest: "/tmp/docker_images_updated.json"
