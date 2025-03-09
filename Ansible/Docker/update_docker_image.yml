@@ -1,0 +1,39 @@
+- name: Update Docker image
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check for new images
+      shell: |
+        docker images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | while read img; do
+          latest=$(docker pull $img | grep 'Downloaded newer image' | wc -l)
+          if [ "$latest" -gt 0 ]; then echo $img; fi
+        done
+      register: images_to_update
+      changed_when: images_to_update.stdout != ""
+
+    - name: Stop containers and backup volumes
+      when: images_to_update.stdout != ""
+      block:
+        - name: Stopper les conteneurs
+          shell: "docker ps --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -Ff <(echo '{{ images_to_update.stdout }}') | awk '{print $2}' | xargs -r docker stop"
+
+        - name: Sauvegarder les volumes avec BackRest
+          shell: "backrest backup --all"
+
+    - name: Pull new images
+      when: images_to_update.stdout != ""
+      shell: "echo '{{ images_to_update.stdout }}' | xargs -I {} docker pull {}"
+
+    - name: Restart containers
+      when: images_to_update.stdout != ""
+      shell: "docker ps -a --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -Ff <(echo '{{ images_to_update.stdout }}') | awk '{print $2}' | xargs -r docker start"
+
+    - name: Check if containers are running
+      when: images_to_update.stdout != ""
+      shell: "docker ps --format '{{ '{{' }}.ID{{ '}}' }}' | xargs -r docker inspect --format='{{ '{{' }}.State.Running{{ '}}' }}'"
+      register: check_running
+      failed_when: "'false' in check_running.stdout"
+
+    - name: Return images updated
+      debug:
+        msg: "{{ images_to_update.stdout }}"
