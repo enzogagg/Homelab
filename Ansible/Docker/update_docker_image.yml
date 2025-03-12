@@ -49,5 +49,5 @@
     - name: Récupérer le fichier JSON sur Kestra
       fetch:
         src: "/tmp/docker_images_updated.json"
-        dest: "/tmp/docker_images_updated.json"
+        dest: "/kestra/tmp/docker_images_updated.json"
         flat: yes
