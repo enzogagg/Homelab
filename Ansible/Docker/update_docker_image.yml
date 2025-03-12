@@ -48,6 +48,7 @@
         executable: /bin/bash
 
     - name: Get Docker Hub changelog
+      when: images_to_update.stdout != ""
       shell: |
         for image in $(echo '{{ images_to_update.stdout }}'); do
           repo=$(echo $image | cut -d':' -f1)
