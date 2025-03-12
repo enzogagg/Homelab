@@ -10,6 +10,8 @@
         done
       register: images_to_update
       changed_when: images_to_update.stdout != ""
+      debug:
+        var: images_to_update.stdout
 
     - name: Stop containers
       when: images_to_update.stdout != ""
@@ -67,13 +69,15 @@
         executable: /bin/bash
 
     - name: Send email notification
+      delegate_to: "{{ inventory_hostname }}"
+      when: images_to_update.stdout is defined and images_to_update.stdout != ""
       mail:
         host: smtp.mail.ovh.net
         port: 465
         username: "{{ source_email }}"
         password: "{{ source_email_password }}"
-        from: "Kestra <{{ source_email }}"
-        to: "Kestra <{{ destination_email }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
         subject: "Docker images updated - Changelog"
         body: |
           The following Docker images have been updated:
@@ -82,4 +86,3 @@
 
           Changelog details:
           {{ changelog_output.stdout }}
-      delegate_to: "{{ inventory_hostname }}"
