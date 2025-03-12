@@ -41,13 +41,49 @@
       register: check_running
       failed_when: "'false' in check_running.stdout"
 
-    - name: Generate a JSON file with updated images
-      copy:
-        content: "{{ 'ceci est un test' | to_json }}"
-        dest: "/tmp/docker_images_updated.json"
+    - name: Remove old images
+      when: images_to_update.stdout != ""
+      shell: "docker images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -f /tmp/images_list | xargs -r docker rmi"
+      args:
+        executable: /bin/bash
 
-    - name: Fetch the JSON file
-      fetch:
-        src: "/tmp/docker_images_updated.json"
-        dest: "/tmp/docker_images_updated.json"
-        flat: yes
+    - name: Get Docker Hub changelog
+      shell: |
+        for image in $(echo '{{ images_to_update.stdout }}'); do
+          repo=$(echo $image | cut -d':' -f1)
+          tag=$(echo $image | cut -d':' -f2)
+          namespace=$(echo $repo | cut -d'/' -f1)
+          image_name=$(echo $repo | cut -d'/' -f2)
+
+          if [ "$namespace" = "$image_name" ]; then
+          namespace="library"
+          image_name=$repo
+          fi
+
+          changelog=$(curl -s "https://registry.hub.docker.com/v2/repositories/${namespace}/${image_name}/tags/${tag}/" | jq -r '.description // "No changelog available"')
+          echo "Image: $image"
+          echo "Changelog:"
+          echo "$changelog"
+          echo "-------------------"
+        done
+        register: changelog_output
+      args:
+        executable: /bin/bash
+
+    - name: Send email notification
+      mail:
+        host: smtp.mail.ovh.net
+        port: 465
+        username: "{{ source_email }}"
+        password: "{{ source_email_password }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
+        subject: "Docker images updated - Changelog"
+        body: |
+          The following Docker images have been updated:
+
+          {{ images_to_update.stdout }}
+
+          Changelog details:
+          {{ changelog_output.stdout }}
+
