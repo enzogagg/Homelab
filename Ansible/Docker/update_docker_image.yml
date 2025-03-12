@@ -44,5 +44,5 @@
     - name: Generate a JSON file with updated images
       when: images_to_update.stdout != ""
       copy:
-        content: "{{ images_updated | to_json }}"
+        content: "{{ 'ceci est un test' | to_json }}"
         dest: "/tmp/docker_images_updated.json"
