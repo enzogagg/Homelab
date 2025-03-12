@@ -14,13 +14,9 @@
     - name: Stop containers
       when: images_to_update.stdout != ""
       block:
-        - name: Stopper les conteneurs
+        - name: Stop containers for updated images
           shell: |
-            echo '{{ images_to_update.stdout }}' > /tmp/images_list
-            docker ps --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -f /tmp/images_list | awk '{print $2}' | xargs -r docker stop
-            rm /tmp/images_list
-          args:
-            executable: /bin/bash
+            docker ps --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -E "{{ images_to_update.stdout | join('|') }}" | awk '{print $2}' | xargs -r docker stop
 
     - name: Pull new images
       when: images_to_update.stdout != ""
@@ -29,11 +25,7 @@
     - name: Restart containers
       when: images_to_update.stdout != ""
       shell: |
-        echo '{{ images_to_update.stdout }}' > /tmp/images_list
-        docker ps -a --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -f /tmp/images_list | awk '{print $2}' | xargs -r docker start
-        rm /tmp/images_list
-      args:
-        executable: /bin/bash
+        docker ps -a --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -E "{{ images_to_update.stdout | join('|') }}" | awk '{print $2}' | xargs -r docker start
 
     - name: Check if containers are running
       when: images_to_update.stdout != ""
@@ -43,31 +35,34 @@
 
     - name: Remove old images
       when: images_to_update.stdout != ""
-      shell: "docker images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -f /tmp/images_list | xargs -r docker rmi"
-      args:
-        executable: /bin/bash
+      shell: |
+        docker images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -E "{{ images_to_update.stdout | join('|') }}" | xargs -r docker rmi
 
     - name: Get Docker Hub changelog
       when: images_to_update.stdout != ""
       shell: |
-        for image in $(echo '{{ images_to_update.stdout }}'); do
+        for image in {{ images_to_update.stdout | split('\n') }}; do
           repo=$(echo $image | cut -d':' -f1)
           tag=$(echo $image | cut -d':' -f2)
           namespace=$(echo $repo | cut -d'/' -f1)
           image_name=$(echo $repo | cut -d'/' -f2)
 
           if [ "$namespace" = "$image_name" ]; then
-          namespace="library"
-          image_name=$repo
+            namespace="library"
+            image_name=$repo
           fi
 
-          changelog=$(curl -s "https://registry.hub.docker.com/v2/repositories/${namespace}/${image_name}/tags/${tag}/" | jq -r '.description // "No changelog available"')
+          changelog=$(curl -s --fail "https://registry.hub.docker.com/v2/repositories/${namespace}/${image_name}/tags/${tag}/" | jq -r '.description // "No changelog available"')
+          if [ $? -ne 0 ]; then
+            changelog="Error retrieving changelog"
+          fi
+
           echo "Image: $image"
           echo "Changelog:"
           echo "$changelog"
           echo "-------------------"
         done
-        register: changelog_output
+      register: changelog_output
       args:
         executable: /bin/bash
 
@@ -77,8 +72,8 @@
         port: 465
         username: "{{ source_email }}"
         password: "{{ source_email_password }}"
-        from: "Kestra <{{ source_email }}>"
-        to: "Kestra <{{ destination_email }}>"
+        from: "Kestra <{{ source_email }}"
+        to: "Kestra <{{ destination_email }}"
         subject: "Docker images updated - Changelog"
         body: |
           The following Docker images have been updated:
@@ -87,4 +82,4 @@
 
           Changelog details:
           {{ changelog_output.stdout }}
-
+      delegate_to: "{{ inventory_hostname }}"
