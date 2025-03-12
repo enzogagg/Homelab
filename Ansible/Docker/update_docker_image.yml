@@ -42,7 +42,12 @@
       failed_when: "'false' in check_running.stdout"
 
     - name: Generate a JSON file with updated images
-      when: images_to_update.stdout != ""
       copy:
         content: "{{ 'ceci est un test' | to_json }}"
         dest: "/tmp/docker_images_updated.json"
+
+    - name: Récupérer le fichier JSON sur Kestra
+      fetch:
+        src: "/tmp/docker_images_updated.json"
+        dest: "/tmp/docker_images_updated.json"
+        flat: yes
