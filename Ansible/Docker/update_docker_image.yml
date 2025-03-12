@@ -46,8 +46,8 @@
         content: "{{ 'ceci est un test' | to_json }}"
         dest: "/tmp/docker_images_updated.json"
 
-    - name: Récupérer le fichier JSON sur Kestra
+    - name: Copy the JSON file to the remote host
       fetch:
         src: "/tmp/docker_images_updated.json"
-        dest: "~/kestra/tmp/docker_images_updated.json"
+        dest: "/home/administrateur/kestra/tmp/docker_images_updated.json"
         flat: yes
