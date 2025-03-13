@@ -11,19 +11,12 @@
       register: images_to_update
       changed_when: images_to_update.stdout != ""
 
-    - name: Stop containers and backup volumes
+    - name: Stop containers
       when: images_to_update.stdout != ""
       block:
-        - name: Stopper les conteneurs
+        - name: Stop containers for updated images
           shell: |
-            echo '{{ images_to_update.stdout }}' > /tmp/images_list
-            docker ps --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -f /tmp/images_list | awk '{print $2}' | xargs -r docker stop
-            rm /tmp/images_list
-          args:
-            executable: /bin/bash
-
-        # - name: Sauvegarder les volumes avec BackRest
-        #   shell: "backrest backup --all"
+            docker ps --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -E "{{ images_to_update.stdout | join('|') }}" | awk '{print $2}' | xargs -r docker stop
 
     - name: Pull new images
       when: images_to_update.stdout != ""
@@ -32,11 +25,7 @@
     - name: Restart containers
       when: images_to_update.stdout != ""
       shell: |
-        echo '{{ images_to_update.stdout }}' > /tmp/images_list
-        docker ps -a --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -f /tmp/images_list | awk '{print $2}' | xargs -r docker start
-        rm /tmp/images_list
-      args:
-        executable: /bin/bash
+        docker ps -a --format '{{ '{{' }}.Image{{ '}}' }} {{ '{{' }}.ID{{ '}}' }}' | grep -E "{{ images_to_update.stdout | join('|') }}" | awk '{print $2}' | xargs -r docker start
 
     - name: Check if containers are running
       when: images_to_update.stdout != ""
@@ -44,6 +33,54 @@
       register: check_running
       failed_when: "'false' in check_running.stdout"
 
-    - name: Return images updated
-      debug:
-        msg: "{{ images_to_update.stdout }}"
+    - name: Remove old images
+      when: images_to_update.stdout != ""
+      shell: |
+        docker images --format '{{ '{{' }}.Repository{{ '}}' }}:{{ '{{' }}.Tag{{ '}}' }}' | grep -E "{{ images_to_update.stdout | join('|') }}" | xargs -r docker rmi
+
+    - name: Get Docker Hub changelog
+      when: images_to_update.stdout != ""
+      shell: |
+        for image in {{ images_to_update.stdout | split('\n') }}; do
+          repo=$(echo $image | cut -d':' -f1)
+          tag=$(echo $image | cut -d':' -f2)
+          namespace=$(echo $repo | cut -d'/' -f1)
+          image_name=$(echo $repo | cut -d'/' -f2)
+
+          if [ "$namespace" = "$image_name" ]; then
+            namespace="library"
+            image_name=$repo
+          fi
+
+          changelog=$(curl -s --fail "https://registry.hub.docker.com/v2/repositories/${namespace}/${image_name}/tags/${tag}/" | jq -r '.description // "No changelog available"')
+          if [ $? -ne 0 ]; then
+            changelog="Error retrieving changelog"
+          fi
+
+          echo "Image: $image"
+          echo "Changelog:"
+          echo "$changelog"
+          echo "-------------------"
+        done
+      register: changelog_output
+      args:
+        executable: /bin/bash
+
+    - name: Send email notification
+      delegate_to: "{{ inventory_hostname }}"
+      when: images_to_update.stdout is defined and images_to_update.stdout != ""
+      mail:
+        host: smtp.mail.ovh.net
+        port: 465
+        username: "{{ source_email }}"
+        password: "{{ source_email_password }}"
+        from: "Kestra <{{ source_email }}>"
+        to: "Kestra <{{ destination_email }}>"
+        subject: "Docker images updated - Changelog"
+        body: |
+          The following Docker images have been updated:
+
+          {{ images_to_update.stdout }}
+
+          Changelog details:
+          {{ changelog_output.stdout }}
